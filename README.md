@@ -1,56 +1,37 @@
 # **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+## Writeup
 
-Overview
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+**Finding Lane Lines on the Road**
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
-
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
+The goals / steps of this project are the following:
+* Make a pipeline that finds lane lines on the road
+* Reflect on your work in a written report
 
 
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
+[//]: # (Image References)
 
-1. Describe the pipeline
+[image1]: ./examples/grayscale.jpg "Grayscale"
 
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+### Reflection
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
+### 1. Image processing pipeline
 
-**Step 2:** Open the code in a Jupyter Notebook
+My pipeline consisted of 7 steps. First, I filtered in white-ish and yellow-ish pixels and turned everything else black. Then, to facilitate Canny edge detection, I converted the image to grayscale and applied Gaussian smoothing. The next step is Canny edge detection. To further remove unwanted artifacts, I applied a positive mask on the region of interest (ROI) while keeping everything outside black. After that, I used Hough transform to draw a lines representing each lane. The final step is to combine that line image with the original image. 
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+To draw a single line on the left and right lanes, I modified the draw_lines() function by adding the following steps. First, I calculated the slope for each lines and filtered in lines with a reasonalble value of slope. The upper and lower threshold were obtained through visual inspection and trials-and-errors. Then I classified whether a given line is on the left lane, right lane, or could not be on any lane based on its slope and the x-coordinates of its two endpoints. Next, I used linear regression to obtain a best-fit line going thourgh the endpoints of all the lines on each lane. Now, each lane is represented by a single line, going from the bottom the image to the top of the ROI.
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
 
-`> jupyter notebook`
+### 2. Potential shortcomings with the current pipeline
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+My current approach will not perform if the road's color is too similar to the lanes' color (due to the road's inherent surface color or to the lighting conditions), since it only uses information from each frame instead of taking into account the continuity of the lane throughout several frames. Furthermore, I hard-coded several parameters like the location (and area) of the ROI, the RGB thresholds, the slope thresholds, and a host of other tuning parameters for the Canny edge detection and the Hough transform after extensive testing on specific videos. This current pipeline is unlikely to work as robustly for a very different video.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
+### 3. Possible improvements
+
+One way to improve this pipeline is to take into account previous frames with frames more immediate in the past have higher influence on the current frame than those further back. Maybe during the linear regression step in the draw_lines() function, I could calculate a weighted average of the slope (and the intercept) based on the best-fit line of the current frame and those of several previous frames. The weight can be exponentially or linearlly decaying further back into the past (My intuition goes with the former.) 
